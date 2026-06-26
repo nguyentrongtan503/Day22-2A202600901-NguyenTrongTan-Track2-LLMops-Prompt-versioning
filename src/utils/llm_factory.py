@@ -40,6 +40,7 @@ def get_llm(provider: str = None, temperature: float = 0.0):
             "model": config.OPENAI_MODEL,
             "api_key": config.OPENAI_API_KEY,
             "temperature": temperature,
+            "timeout": 10.0,
         }
         if config.OPENAI_BASE_URL:
             kwargs["base_url"] = config.OPENAI_BASE_URL
@@ -77,6 +78,7 @@ def get_llm(provider: str = None, temperature: float = 0.0):
             api_key=config.OPENROUTER_API_KEY,
             base_url=config.OPENROUTER_BASE_URL,
             temperature=temperature,
+            timeout=10.0,
         )
 
     else:
@@ -104,6 +106,29 @@ def get_embeddings(provider: str = None):
         Embeddings instance sẵn sàng sử dụng
     """
     provider = (provider or config.PROVIDER).lower()
+
+    if not config.OPENAI_API_KEY and provider in ("openai", "openrouter", "anthropic"):
+        print("ℹ️  Dùng MockEmbeddings (local) do thiếu OPENAI_API_KEY.")
+        from langchain_core.embeddings import Embeddings
+        class MockEmbeddings(Embeddings):
+            def embed_documents(self, texts):
+                import hashlib
+                import numpy as np
+                vectors = []
+                for text in texts:
+                    h = int(hashlib.md5(text.encode('utf-8')).hexdigest(), 16)
+                    np.random.seed(h % 2**32)
+                    vectors.append(np.random.randn(1536).tolist())
+                return vectors
+            def embed_query(self, text):
+                import hashlib
+                import numpy as np
+                h = int(hashlib.md5(text.encode('utf-8')).hexdigest(), 16)
+                np.random.seed(h % 2**32)
+                return np.random.randn(1536).tolist()
+            def __call__(self, text):
+                return self.embed_query(text)
+        return MockEmbeddings()
 
     if provider in ("openai", "openrouter"):
         from langchain_openai import OpenAIEmbeddings

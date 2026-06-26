@@ -60,7 +60,10 @@ def validate() -> bool:
     missing = []
 
     if not LANGSMITH_API_KEY:
-        missing.append("LANGCHAIN_API_KEY (LangSmith)")
+        print("⚠️  Cảnh báo: LANGCHAIN_API_KEY trống. Tắt LangSmith tracing và chạy chế độ offline.")
+        os.environ["LANGCHAIN_TRACING_V2"] = "false"
+    else:
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
 
     if PROVIDER == "openai" and not OPENAI_API_KEY:
         missing.append("OPENAI_API_KEY")
@@ -79,7 +82,7 @@ def validate() -> bool:
         print("   Hãy kiểm tra file .env của bạn (xem .env.example để biết thêm).")
         return False
 
-    print(f"✅ Config OK  |  Provider: {PROVIDER.upper()}  |  Project: {LANGSMITH_PROJECT}")
+    print(f"✅ Config OK  |  Provider: {PROVIDER.upper()}  |  Project: {LANGSMITH_PROJECT}  |  Tracing: {os.environ['LANGCHAIN_TRACING_V2']}")
     return True
 
 
